@@ -254,11 +254,11 @@ class PagesController extends Controller
         //add the specific data from the custom page
         $formbuilder->add('main', $page->getDefaultAdminType());
         $formbuilder->add('node', $node->getDefaultAdminType($this->container));
-        
+
         if(method_exists($page, "getExtraAdminTypes")){
         	foreach($page->getExtraAdminTypes() as $key => $admintype){
         		$formbuilder->add($key, $admintype);
-        	}	
+        	}
         }
 
         $bindingarray = array('node' => $node, 'main' => $page);
@@ -267,7 +267,7 @@ class PagesController extends Controller
         		$bindingarray[$key] = $page;
         	}
         }
-                
+
         $formbuilder->setData($bindingarray);
 
         //handle the pagepart functions (fetching, change form to reflect all fields, assigning data, etc...)
@@ -284,6 +284,7 @@ class PagesController extends Controller
             $permissionadmin->initialize($node, $em, $page->getPossiblePermissions());
         }
 
+        $invalidpagepartsids = array();
         $seoform = $this->createForm(new SEOType(), $nodeTranslation->getSEO());
         $form = $formbuilder->getForm();
         if ($request->getMethod() == 'POST') {
@@ -297,7 +298,9 @@ class PagesController extends Controller
                 $permissionadmin->bindRequest($request);
             }
             if ($form->isValid()) {
-                $em = $this->getDoctrine()->getEntityManager();
+                $em->flush(); // maybe more at the bottom of the if statement, what with the flush in PermissionAdmin->bindRequest?
+
+                $em = $this->getDoctrine()->getEntityManager(); // is this needed here? We already have the $em variable
 
                 $formValues = $request->request->get('form');
                 if(isset($formValues['node']['roles'])) {
@@ -339,6 +342,22 @@ class PagesController extends Controller
                 			'currenttab' => $currenttab,
                 	)));
                 }
+            } else {
+                foreach ($this->getInvalidForms($form) as $child) {
+                    $data = $child->getData();
+                    while (is_null($data)) {
+                        $parent = $child->getParent();
+                        if(is_null($parent)) {
+                            $data = null;
+                            break;
+                        }
+                        $data = $parent->getData();
+                    }
+
+                    if(!is_null($data)) {
+                        $invalidpagepartsids[] = $data->getID();
+                    }
+                }
             }
         }
 
@@ -359,11 +378,26 @@ class PagesController extends Controller
         	'draftNodeVersion'  => $draftNodeVersion,
         	'subaction'         => $subaction,
         	'currenttab'		=> $currenttab,
+            'invalidppids'      => $invalidpagepartsids
         );
         if($this->get('security.context')->isGranted('ROLE_PERMISSIONMANAGER')){
             $viewVariables['permissionadmin'] = $permissionadmin;
         }
         return $viewVariables;
+    }
+
+    public function getInvalidForms($form) {
+        $forms = array();
+        if($form->hasErrors()) {
+            $forms[] = $form;
+        }
+        if(!$form->isReadOnly()) {
+            foreach ($form->getChildren() as $child) {
+                $forms = array_merge($this->getInvalidForms($child), $forms);
+            }
+        }
+        return $forms;
+
     }
 
     private function deleteNodeChildren($em, $user, $locale, $children, $page){
