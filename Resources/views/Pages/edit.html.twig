@@ -19,7 +19,7 @@
 {% endblock %}
 
 {% block page_header_addition %}
-{% if draft %} <small>Draft version (Go to <a href="{{ path('KunstmaanAdminNodeBundle_pages_edit', { 'id': node.id, 'subaction': ''}) }}">public version</a>)</small> {% else %} <small>Public version {% if draftNodeVersion is not null %} (Go to <a href="{{ path('KunstmaanAdminBundle_pages_edit', { 'id': node.id, 'subaction': 'draft'}) }}">draft version</a>)</small> {% endif %} {% endif %}
+{% if draft %} <small>Draft version (Go to <a href="{{ path('KunstmaanAdminNodeBundle_pages_edit', { 'id': node.id, 'subaction': ''}) }}">public version</a>)</small> {% else %} <small>Public version {% if draftNodeVersion is not null %} (Go to <a href="{{ path('KunstmaanAdminNodeBundle_pages_edit', { 'id': node.id, 'subaction': 'draft'}) }}">draft version</a>)</small> {% endif %} {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -36,6 +36,7 @@
 					<a href="#" class="btn cancel">Cancel</a>
 				</div>
 	</div>
+
     <form id="pageadminform" action="{{ path('KunstmaanAdminNodeBundle_pages_edit', { 'id': node.id, 'subaction': subaction}) }}" method="post" {{ form_enctype(form) }} novalidate="novalidate">
     <div class="sub_actions">
       {% if not draft %}
@@ -204,6 +205,11 @@
             {% endif %}
             <li {% if currenttab == 'seo' or alreadyexiststab ==false %} class="active" {% endif %} onClick="jQuery('#currenttab').val('seo');"><a href="#seo">SEO</a></li>
         </ul>
+    {% if widgetParameters.invalidppids|length > 0 %}
+    <div class="alert-message error">
+        <p>Er zijn fouten gevonden, gelieve deze te corrigeren.</p>
+    </div>
+    {% endif %}
         <div id="my-tab-content" class="tab-content">
         	<input type="hidden" name="currenttab" id="currenttab" value="{{ currenttab }}">
         	{% set propertiesform = false %}
@@ -220,6 +226,9 @@
 					    			<div class="input_prop">
 					    				{{ form_widget(form.node) }}
 					    			</div>
+					    			<div class="input_prop">
+					    				{{ form_widget(form.nodetranslation) }}
+					    			</div>
 					    		</div>
 				    	</div>
 			    	{% endif %}
@@ -234,7 +243,7 @@
 					    	</div>
 					    {% endif %}
 				    {% endfor %}
-	                {{ pagepartadmin_widget(pagepartadmin, form) }}
+	                {{ pagepartadmin_widget(pagepartadmin, form, widgetParameters) }}
 	            </div>
         	{% endfor %}
 

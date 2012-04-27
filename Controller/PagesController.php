@@ -42,7 +42,7 @@ class PagesController extends Controller
         return array(
 			'topnodes'      => $topnodes,
         	'nodemenu' 	    => $nodeMenu,
-            'adminlist' => $adminlist,
+            'adminlist'     => $adminlist,
         );
     }
 
@@ -254,6 +254,7 @@ class PagesController extends Controller
         //add the specific data from the custom page
         $formbuilder->add('main', $page->getDefaultAdminType());
         $formbuilder->add('node', $node->getDefaultAdminType($this->container));
+        $formbuilder->add('nodetranslation', $nodeTranslation->getDefaultAdminType($this->container));
 
         if(method_exists($page, "getExtraAdminTypes")){
         	foreach($page->getExtraAdminTypes() as $key => $admintype){
@@ -261,7 +262,7 @@ class PagesController extends Controller
         	}
         }
 
-        $bindingarray = array('node' => $node, 'main' => $page);
+        $bindingarray = array('node' => $node, 'main' => $page, 'nodetranslation'=> $nodeTranslation);
         if(method_exists($page, "getExtraAdminTypes")){
         	foreach($page->getExtraAdminTypes() as $key => $admintype){
         		$bindingarray[$key] = $page;
@@ -312,6 +313,7 @@ class PagesController extends Controller
                 $node->setRoles($roles);
 
                 $em->persist($node);
+                $em->persist($nodeTranslation);
                 $editcommand = new EditCommand($em, $user);
     			$editcommand->execute("added pageparts to page \"". $page->getTitle() ."\" with locale: " . $locale, array('entity'=> $page));
 
@@ -320,8 +322,6 @@ class PagesController extends Controller
                 	$nodeVersion = $em->getRepository('KunstmaanAdminNodeBundle:NodeVersion')->createNodeVersionFor($newpublicpage, $nodeTranslation, $user, 'public');
                 	$nodeTranslation->setPublicNodeVersion($nodeVersion);
                 	$nodeTranslation->setTitle($newpublicpage->__toString());
-            		$nodeTranslation->setSlug(Slugifier::slugify($newpublicpage->__toString()));
-            		$nodeTranslation->setOnline($newpublicpage->isOnline());
                 	$addcommand = new AddCommand($em, $user);
         			$addcommand->execute("saved and published page \"". $nodeTranslation->getTitle() ."\" added with locale: " . $locale, array('entity'=> $nodeTranslation));
                 	$draft = false;
@@ -343,26 +343,19 @@ class PagesController extends Controller
                 	)));
                 }
             } else {
-                foreach ($this->getInvalidForms($form) as $child) {
-                    $data = $child->getData();
-                    while (is_null($data)) {
-                        $parent = $child->getParent();
-                        if(is_null($parent)) {
-                            $data = null;
-                            break;
-                        }
-                        $data = $parent->getData();
-                    }
-
-                    if(!is_null($data)) {
-                        $invalidpagepartsids[] = $data->getID();
+                foreach ($this->getInvalidForms($form) as $invalidForm) {
+                    if($invalidForm->hasParent()) {
+                        $invalidpagepartsids[$invalidForm->getParent()->getName()] = true;
                     }
                 }
             }
         }
+        $widgetParameters = array(
+            'invalidppids'  =>  $invalidpagepartsids,
+        );
+
 
         $nodeMenu = new NodeMenu($this->container, $locale, $node, 'write', true);
-
         $viewVariables = array(
             'topnodes'          => $topnodes,
             'page'              => $page,
@@ -378,7 +371,7 @@ class PagesController extends Controller
         	'draftNodeVersion'  => $draftNodeVersion,
         	'subaction'         => $subaction,
         	'currenttab'		=> $currenttab,
-            'invalidppids'      => $invalidpagepartsids
+            'widgetParameters'  => $widgetParameters,
         );
         if($this->get('security.context')->isGranted('ROLE_PERMISSIONMANAGER')){
             $viewVariables['permissionadmin'] = $permissionadmin;
@@ -388,14 +381,16 @@ class PagesController extends Controller
 
     public function getInvalidForms($form) {
         $forms = array();
-        if($form->hasErrors()) {
+        if ($form->hasErrors()) {
             $forms[] = $form;
         }
-        if(!$form->isReadOnly()) {
+
+        if (!$form->isReadOnly()) {
             foreach ($form->getChildren() as $child) {
                 $forms = array_merge($this->getInvalidForms($child), $forms);
             }
         }
+
         return $forms;
 
     }

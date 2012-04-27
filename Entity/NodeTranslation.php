@@ -1,14 +1,17 @@
 <?php
 
-// src/Blogger/BlogBundle/Entity/Blog.php
-
 namespace Kunstmaan\AdminNodeBundle\Entity;
 
-use Doctrine\ORM\Mapping as ORM;
-use Doctrine\Common\Annotations\Annotation;
-use Kunstmaan\SearchBundle\Entity\Indexable;
-use Doctrine\Common\Collections\ArrayCollection;
 use Kunstmaan\AdminNodeBundle\Form\NodeAdminType;
+use Kunstmaan\AdminNodeBundle\Form\NodeTranslationAdminType;
+use Kunstmaan\SearchBundle\Entity\Indexable;
+
+use Doctrine\ORM\Mapping as ORM;
+use Doctrine\ORM\Event\LifecycleEventArgs;
+use Doctrine\ORM\Event\PreUpdateEventArgs;
+use Doctrine\Common\Annotations\Annotation;
+use Doctrine\Common\Collections\ArrayCollection;
+
 
 /**
  * @ORM\Entity(repositoryClass="Kunstmaan\AdminNodeBundle\Repository\NodeTranslationRepository")
@@ -48,6 +51,11 @@ class NodeTranslation {
      * @ORM\Column(type="string", nullable=true)
      */
     protected $slug;
+
+    /**
+     * @ORM\Column(type="string", nullable=true)
+     */
+    protected $url;
 
     /**
      * @ORM\ManyToOne(targetEntity="NodeVersion")
@@ -176,17 +184,50 @@ class NodeTranslation {
      *
      * @return string
      */
+    public function getFullSlug()
+    {
+    	$slug = $this->getSlugPart();
+
+        if (empty($slug)) {
+            return null;
+        }
+
+    	return $slug;
+    }
+
+    public function getSlugPart()
+    {
+    	$slug = "";
+    	if ($this->getNode()->getParent() != null) {
+    	    $nodeTranslation = $this->getNode()->getParent()->getNodeTranslation($this->lang);
+    	    if ($nodeTranslation != null) {
+    	        $parentslug = $nodeTranslation->getSlugPart();
+    	        if (!empty($parentslug)) {
+    	            $slug = rtrim($parentslug, "/")."/";
+    	        }
+    	    }
+    	}
+
+    	$slug = $slug . $this->getSlug();
+
+    	return $slug;
+    }
+    
+    /**
+    * Get slug
+    *
+    * @return string
+    */
     public function getSlug() {
-	$node = $this->getNode();
-	$slug = "";
-	if ($node->getParent() != null && $node->getParent()->getNodeTranslation($this->lang) != null)
-	    $slug = $slug . $this->getParentSlug($node);
-	$slug = $slug . $this->slug;
-	return $slug;
+        return $this->slug;
     }
 
     public function getParentSlug($node) {
-		return $node->getParent()->getNodeTranslation($this->lang)->getSlug() . "/";
+        $parentslug = $node->getParent()->getNodeTranslation($this->lang)->getSlug();
+        if(!empty($parentslug)){
+            return $parentslug."/";
+        }
+        return "";
     }
 
     /**
@@ -240,7 +281,7 @@ class NodeTranslation {
     }
 
     public function getDefaultAdminType($container) {
-	return new NodeAdminType($container);
+	return new NodeTranslationAdminType($container);
     }
 
     public function getRef($em, $type = "public") {
@@ -310,6 +351,16 @@ class NodeTranslation {
 
     public function getSEO() {
     	return $this->seo;
+    }
+
+    public function setUrl($url)
+    {
+        $this->url = $url;
+    }
+
+    public function getUrl()
+    {
+        return $this->url;
     }
 
 }
