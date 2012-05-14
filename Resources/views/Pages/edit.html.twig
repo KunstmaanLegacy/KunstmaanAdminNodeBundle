@@ -2,6 +2,7 @@
 {% form_theme form 'KunstmaanAdminBundle:Form:fields.html.twig' %}
 
 {% block extrajavascript %}
+
 	 <script type=text/javascript>
 	 
 		var isEdited = false;
@@ -16,11 +17,13 @@
     			return 'You haven\'t saved this page, are you sure you want to close it?';
         	}
         }
-		window.onbeforeunload = doCheckErrors;
+		window.onload = doCheckErrors;
 //TODO Test
     	function doCheckErrors(){
     		if(document.getElementById("lastfooter") == null){
-    			return 'There was an error in this page. It is not recommended to save this page.';
+    			$("input[name='save']").css('display', 'none');
+    			$("input[name='saveasdraft']").css('display', 'none');
+    			        		
         	}
         }
 	</script>
