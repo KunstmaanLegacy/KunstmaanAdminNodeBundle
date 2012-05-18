@@ -2,10 +2,9 @@
 
 namespace Kunstmaan\AdminNodeBundle\Repository;
 
-use Kunstmaan\AdminNodeBundle\Entity\HasNode;
+use Kunstmaan\AdminNodeBundle\Entity\HasNodeInterface;
 use Kunstmaan\AdminBundle\Entity\User as Baseuser;
 use Kunstmaan\AdminNodeBundle\Entity\Node;
-use Kunstmaan\AdminBundle\Entity\PageIFace;
 use Kunstmaan\AdminBundle\Modules\ClassLookup;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Query\ResultSetMapping;
@@ -19,15 +18,6 @@ use Doctrine\ORM\Query\ResultSetMapping;
 class NodeRepository extends EntityRepository
 {
 	public function getTopNodes($user, $permission) {
-	   /* $qb = $this->createQueryBuilder('b')
-	               ->select('b')
-                   ->where('b.parent is null')
-                   ->andWhere('b.id IN (
-                        SELECT p.refId FROM Kunstmaan\AdminBundle\Entity\Permission p WHERE p.refEntityname = b.refEntityname AND p.permissions LIKE ?1 AND p.refGroup IN(?2)
-                   )')
-	               ->addOrderBy('b.sequencenumber', 'DESC')
-                   ->setParameter(1, '%|'.$permission.':1|%')
-                   ->setParameter(2, $user->getGroupIds());*/
 	    $qb = $this->createQueryBuilder('b')
 	               ->select('b')
                    ->where('b.parent is null and b.deleted = 0')
@@ -50,7 +40,7 @@ class NodeRepository extends EntityRepository
 	              ->getResult();
 	}
 
-	public function getNodeFor(HasNode $hasNode) {
+	public function getNodeFor(HasNodeInterface $hasNode) {
 		$nodeVersion = $this->getEntityManager()->getRepository('KunstmaanAdminNodeBundle:NodeVersion')->getNodeVersionFor($hasNode);
 		if(!is_null($nodeVersion)){
 			$nodeTranslation = $nodeVersion->getNodeTranslation();
@@ -86,7 +76,7 @@ class NodeRepository extends EntityRepository
 		return $result;
 	}
 
-	public function createNodeFor(HasNode $hasNode, $lang, Baseuser $owner, $internalName = null){
+	public function createNodeFor(HasNodeInterface $hasNode, $lang, Baseuser $owner, $internalName = null){
 		$em = $this->getEntityManager();
 		$classname = ClassLookup::getClass($hasNode);
 		if(!$hasNode->getId()>0){
