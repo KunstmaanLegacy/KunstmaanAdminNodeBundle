@@ -32,6 +32,7 @@ abstract class AbstractPage extends AbstractEntity implements PageInterface, Dee
 
     /**
      * @ORM\Column(type="string")
+     * @Assert\NotBlank()
      */
     protected $title;
 
