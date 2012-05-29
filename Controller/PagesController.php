@@ -44,7 +44,7 @@ class PagesController extends Controller
         return array(
 			'topnodes'      => $topnodes,
         	'nodemenu' 	    => $nodeMenu,
-            'adminlist' => $adminlist,
+            'adminlist'     => $adminlist,
         );
     }
 
@@ -254,6 +254,7 @@ class PagesController extends Controller
             $permissionadmin->initialize($node, $em, $page->getPossiblePermissions());
         }
 
+        $invalidpagepartsids = array();
         $seoform = $this->createForm(new SEOType(), $nodeTranslation->getSEO());
         $form = $formbuilder->getForm();
         if ($request->getMethod() == 'POST') {
@@ -267,7 +268,7 @@ class PagesController extends Controller
                 $permissionadmin->bindRequest($request);
             }
             if ($form->isValid()) {
-                $em = $this->getDoctrine()->getEntityManager();
+                $em->flush(); // maybe more at the bottom of the if statement, what with the flush in PermissionAdmin->bindRequest?
 
                 $formValues = $request->request->get('form');
                 if(isset($formValues['node']['roles'])) {
@@ -315,11 +316,20 @@ class PagesController extends Controller
                 			'currenttab' => $currenttab,
                 	)));
                 }
+            } else {
+                foreach ($this->getInvalidForms($form) as $invalidForm) {
+                    if($invalidForm->hasParent()) {
+                        $invalidpagepartsids[$invalidForm->getParent()->getName()] = true;
+                    }
+                }
             }
         }
+        $widgetParameters = array(
+            'invalidppids'  =>  $invalidpagepartsids,
+        );
+
 
         $nodeMenu = new NodeMenu($this->container, $locale, $node, 'write', true);
-
         $viewVariables = array(
             'topnodes'          => $topnodes,
             'page'              => $page,
@@ -335,6 +345,7 @@ class PagesController extends Controller
         	'draftNodeVersion'  => $draftNodeVersion,
         	'subaction'         => $subaction,
         	'currenttab'		=> $currenttab,
+            'widgetParameters'  => $widgetParameters,
         );
         if($this->get('security.context')->isGranted('ROLE_PERMISSIONMANAGER')){
             $viewVariables['permissionadmin'] = $permissionadmin;
@@ -456,6 +467,22 @@ class PagesController extends Controller
     			'topnodes'      => $topnodes,
     			'nodemenu' 	    => $nodeMenu,
     	);
+    }
+
+	public function getInvalidForms($form) {
+        $forms = array();
+        if ($form->hasErrors()) {
+            $forms[] = $form;
+        }
+
+        if (!$form->isReadOnly()) {
+            foreach ($form->getChildren() as $child) {
+                $forms = array_merge($this->getInvalidForms($child), $forms);
+            }
+        }
+
+        return $forms;
+
     }
 
 }
