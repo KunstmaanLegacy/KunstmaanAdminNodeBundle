@@ -237,7 +237,7 @@ class PagesController extends Controller
         if (is_string($addpage) && $addpage != '') {
             $nodenewpage = $this->addPage($em, $user, $locale, $page, $addpage, $addpagetitle);
 
-            return $this->redirect($this->generateUrl("KunstmaanAdminNodeBundle_pages_edit", array('id' => $nodenewpage->getId(), 'currenttab' => $currentTab)));
+            return $this->redirect($this->generateUrl("KunstmaanAdminNodeBundle_pages_edit", array('id' => $nodenewpage->getId(), 'currenttab' => $currenttab)));
         }
 
         $delete = $request->get("delete");
@@ -273,7 +273,6 @@ class PagesController extends Controller
                 $bindingarray[$key] = $page;
             }
         }
-
         $formbuilder->setData($bindingarray);
 
         //handle the pagepart functions (fetching, change form to reflect all fields, assigning data, etc...)
@@ -291,7 +290,6 @@ class PagesController extends Controller
             $permissionadmin = $this->get("kunstmaan_admin.permissionadmin");
             $permissionadmin->initialize($node, $em, $page->getPossiblePermissions());
         }
-
         $form = $formbuilder->getForm();
         if ($request->getMethod() == 'POST') {
             $form->bindRequest($request);
@@ -305,7 +303,6 @@ class PagesController extends Controller
                 foreach ($pagepartadmins as $pagepartadmin) {
                     $pagepartadmin->postBindRequest($request);
                 }
-                $em->flush();
 
                 $formValues = $request->request->get('form');
                 if (isset($formValues['node']['roles'])) {
@@ -315,12 +312,13 @@ class PagesController extends Controller
                 }
 
                 $node->setRoles($roles);
-
+                $nodeTranslation->setTitle($page->getTitle());
                 $em->persist($node);
                 $em->persist($nodeTranslation);
+                
                 $editcommand = new EditCommand($em, $user);
                 $editcommand->execute("added pageparts to page \"". $page->getTitle() ."\" with locale: " . $locale, array('entity'=> $page));
-
+                
                 if (is_string($saveandpublish) && $saveandpublish != '') {
                     $newpublicpage = $page->deepClone($em);
                     $nodeVersion = $em->getRepository('KunstmaanAdminNodeBundle:NodeVersion')->createNodeVersionFor($newpublicpage, $nodeTranslation, $user, 'public');
@@ -424,7 +422,7 @@ class PagesController extends Controller
         $em->persist($nodenewpage);
         $em->flush();
 
-        return $$nodenewpage;
+        return $nodenewpage;
     }
 
     /**
