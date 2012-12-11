@@ -16,7 +16,7 @@ use Doctrine\ORM\EntityManager;
  * NodeTranslation
  *
  * @ORM\Entity(repositoryClass="Kunstmaan\AdminNodeBundle\Repository\NodeTranslationRepository")
- * @ORM\Table(name="kuma_node_translations")
+ * @ORM\Table(name="kuma_node_translations", uniqueConstraints={@ORM\UniqueConstraint(name="kuma_node_translations_uk", columns={"node", "lang"})})
  * @ORM\ChangeTrackingPolicy("DEFERRED_EXPLICIT")
  */
 class NodeTranslation extends AbstractEntity
