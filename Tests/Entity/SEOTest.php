@@ -102,16 +102,6 @@ class SEOTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers Kunstmaan\AdminNodeBundle\Entity\SEO::setOgImage
-     * @covers Kunstmaan\AdminNodeBundle\Entity\SEO::getOgImage
-     */
-    public function testGetSetOgImage()
-    {
-        $this->object->setOgImage('http://domain.com/OpenGraphImage.jpg');
-        $this->assertEquals('http://domain.com/OpenGraphImage.jpg', $this->object->getOgImage());
-    }
-
-    /**
      * @covers Kunstmaan\AdminNodeBundle\Entity\SEO::setOgTitle
      * @covers Kunstmaan\AdminNodeBundle\Entity\SEO::getOgTitle
      */
